@@ -3,11 +3,11 @@ __date__ = "October 15"
 __version__ = "2.0"
 
 # This program will have the next functions:
-# 1) Read a .txt file to create a NDFA
+# 1) Read a .txt file to create a NDFA and then give the equivalent DFA
 # 2) from the same .txt file verify if the input is valid for that NDFA for this we have the next funtcions:
 #   a) transition function -> return me where do i get from q0 with a for example
 #   b) union -> return the union of two arrays WITHOUT duplicates
-#   c) extended transition function -> main function that has the recursion®®
+#   c) conversor function that makes all the process
 
 import sys
 import re
@@ -26,9 +26,7 @@ file = ""
 new_states = {}
 support_states = {}
 queue = []
-new_initial_state = ""
 new_final_states = []
-new_transition_table = {}
 
 
 # This function will read the .txt and save all the values into the correct variables and create the dictonaries
@@ -57,8 +55,10 @@ def read_document(file):
 def transition_function(state, character):
     global transition_table
     # This try and except it's to validate that the state exist and the program doesnt break
-    try: returning = transition_table[state].get(character)
-    except: returning = []
+    try:
+        returning = transition_table[state].get(character)
+    except:
+        returning = []
 
     return returning
 
@@ -78,54 +78,6 @@ def intersection(state1, state2):
     return result
 
 
-# This is the main function that has the recursion to verify if the input is valid
-def extended_transition_function(state, word):
-    print("The string is: ", word)
-    if len(word) == 0:  # we check if is an empty string
-        print(state)
-        return state
-    elif len(word) == 1:  # we check if is the base case
-        print("\nThe last character: ", word)
-        trans = transition_table[state].get(word)
-        return trans
-    else:  # this is the recursion case were all the operations are made
-        return_states = extended_transition_function(state,
-                                                     word[0:-1])  # This calls itself with all except the last character
-        if return_states is None: return {}  # if the return_states are None that means that there are no path to that character
-
-        char_verify = word[-1]  # we check with the last character
-        print("\ncharacter to review: ", char_verify)
-        print("return states: ", return_states)
-
-        final_states = []
-        for state_temp in return_states:  # cycle to travel each value of the return_states
-            container = transition_function(state_temp, char_verify)  # we save the values in a container variable
-
-            print("state_temp: ", state_temp, "word: ", char_verify)
-            print("its transition is: ", container)
-
-            if container is not None: final_states = union(final_states, container)
-
-        print("final states: ", final_states)
-        return final_states
-
-
-# This function recive the states and check if the string is valid or invalid
-def solver(stateX, stringX):
-    print("\nProcess starts... \n")
-    result = extended_transition_function(stateX, stringX)
-    print("\nfinal result: ", result)
-    # Here we made the interesection with the result and the final states
-    intersection_result = intersection(final_states, result)
-    # Here we check if the string is valid
-    if len(result) == 0:
-        print("The string: {} is not valid\n".format(stringX))
-    elif len(intersection_result) > 0:
-        print("The string: {} is valid\n".format(stringX))
-    else:
-        print("The string: {} is not valid\n".format(stringX))
-
-
 def conversion():
     # For the first step we create the n states based on the alphabet with the transictions of q0
     print("\nNDFA -> DFA...")
@@ -143,24 +95,20 @@ def conversion():
             else:
                 new_states[new_state][letter] = new_state2
 
-    #print("new states: ", new_states)
-    #print("support states: ", support_states)
-    #print("queue: ", queue)
-
+    # After we created the queue we iterate over it so we can create the DFA
     for item in queue:
-        #print("\nevaluando:", item)
         support_queue = []
-        for letter in alphabet:
-            #print("con: ", letter)
+        for letter in alphabet:  # For each value we iterate over the alphabet
+            # print("con: ", letter)
             support_queue = []
-            for stateX in support_states.get(item):
+            for stateX in support_states.get(item):  # here we find the values for the set of values in each state
                 if transition_function(stateX, letter) is not None:
                     support_queue = union(support_queue, transition_function(stateX, letter))
 
             verify = False
-            for key in support_states:
+            for key in support_states:  # we try to find if the values obtained match with some existing set
                 if np.array_equal(support_states.get(key), support_queue):
-                    #print("ya existe uno asi")
+                    # print("ya existe uno asi")
                     verify = True
                     if new_states.get(item) is None:
                         new_states[item] = {}
@@ -168,52 +116,43 @@ def conversion():
                     else:
                         new_states[item][letter] = key
 
-            if not verify:
-               i2 += 1
-               new_stateX = str("q" + str(i2))
-               queue.append(new_stateX)
-               support_states[new_stateX] = support_queue
-               if new_states.get(item) is None:
-                   new_states[item] = {}
-                   new_states[item][letter] = new_stateX
-               else:
-                   new_states[item][letter] = new_stateX
+            if not verify:  # if there is not match we create a new set and new state
+                i2 += 1
+                new_stateX = str("q" + str(i2))
+                queue.append(new_stateX)
+                support_states[new_stateX] = support_queue
+                if new_states.get(item) is None:
+                    new_states[item] = {}
+                    new_states[item][letter] = new_stateX
+                else:
+                    new_states[item][letter] = new_stateX
 
+    # Finally we Determinate the final states
+    if "q0" in final_states:
+        new_final_states.append("q0")
 
-
-    print("the DFA dictionary is: ", new_states)
-    print("each state is conformed by: ", support_states)
-    #print("queue: ", queue)
-
-
-    return 0
-
-# This function print the global values
-def print_globals():
-    var_globals = globals()
-    # print("\nThe global variables are: ")
-    # print("The states are: {}".format(var_globals['states']))
-    # print("The alphabet is: {}".format(var_globals['alphabet']))
-    # print("The initial state is: {}".format(var_globals['initial_state']))
-    # print("The final states are: {}".format(var_globals['final_states']))
-    print("The NDFA dictionary is: {}".format(var_globals['transition_table']))
+    for key in support_states.keys():
+        for final in final_states:
+            if final in support_states.get(key):
+                if key not in new_final_states:
+                    new_final_states.append(key)
 
 
 # This is the main function that initializes everything
 def main():
     # We call the global vars
     global file, string_to_check
-    file = "test3.txt" #input("Give the name of the file to read: ")
+    file = input("Give the name of the file to read: ")
     # string_to_check = input("Give the string you want to verify: ")
     # We call the function for reading the document
     read_document(file)
     # We call  the function to print the global vars
-    print_globals()
-    # We call the function to check if the string is valid or not
-    # solver(initial_state, string_to_check)
     # This cycle is to ask for the user for new strings to check
+    print("The NDFA dictionary is: {}".format(transition_table))
     conversion()
-
+    print("The DFA dictionary is: ", new_states)
+    print("Each state is conformed by: ", support_states)
+    print("The new final states are: ", new_final_states)
 
 # We call main to starts our program
 main()
